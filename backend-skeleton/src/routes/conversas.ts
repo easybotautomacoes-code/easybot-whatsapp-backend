@@ -89,3 +89,23 @@ conversasRouter.post("/atualizar-status", async (req, res) => {
 
   return res.json({ conversa: data });
 });
+
+// POST /api/conversas/verificar-timeout
+// Chamado periodicamente (a cada 15 min, via Schedule Trigger no n8n).
+// Devolve pro bot qualquer conversa que ficou "aguardando_humano" por mais
+// de 2h sem nenhum atendente assumir.
+conversasRouter.post("/verificar-timeout", async (req, res) => {
+  const horasLimite = 2;
+  const limite = new Date(Date.now() - horasLimite * 60 * 60 * 1000).toISOString();
+
+  const { data, error } = await supabase
+    .from("conversas")
+    .update({ status: "bot" })
+    .eq("status", "aguardando_humano")
+    .lt("updated_at", limite)
+    .select("id");
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.json({ ok: true, conversas_revertidas: data?.length || 0 });
+});
