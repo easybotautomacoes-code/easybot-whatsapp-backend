@@ -11,6 +11,8 @@ webhookMetaRouter.get("/whatsapp", (req, res) => {
   const token = req.query["hub.verify_token"];
   const challenge = req.query["hub.challenge"];
 
+  console.log("[webhook] GET verificação recebida. mode:", mode, "token bate:", token === process.env.META_WEBHOOK_VERIFY_TOKEN);
+
   if (mode === "subscribe" && token === process.env.META_WEBHOOK_VERIFY_TOKEN) {
     return res.status(200).send(challenge);
   }
@@ -25,6 +27,8 @@ webhookMetaRouter.get("/whatsapp", (req, res) => {
 webhookMetaRouter.post("/whatsapp", async (req, res) => {
   // responde imediato — a Meta espera resposta rápida (<5s)
   res.sendStatus(200);
+
+  console.log("[webhook] POST recebido:", JSON.stringify(req.body).slice(0, 500));
 
   try {
     const entry = req.body?.entry?.[0];
@@ -52,13 +56,20 @@ webhookMetaRouter.post("/whatsapp", async (req, res) => {
         },
       };
 
+      console.log("[webhook] mensagem detectada, empresa_id:", empresa_id, "N8N_WEBHOOK_URL configurada:", !!process.env.N8N_WEBHOOK_URL);
+
       if (process.env.N8N_WEBHOOK_URL) {
-        await fetch(process.env.N8N_WEBHOOK_URL, {
+        const respostaN8n = await fetch(process.env.N8N_WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payloadParaN8n),
         });
+        console.log("[webhook] status da resposta do n8n:", respostaN8n.status);
+      } else {
+        console.log("[webhook] N8N_WEBHOOK_URL não está configurada — mensagem não foi repassada.");
       }
+    } else if (!statusRecebido) {
+      console.log("[webhook] POST recebido mas sem mensagem nem status reconhecível.");
     }
 
     // Atualização de status (entregue/lida/falhou) -> por enquanto só loga.
