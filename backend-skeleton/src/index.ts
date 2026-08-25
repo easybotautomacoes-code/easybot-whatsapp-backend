@@ -4,6 +4,7 @@ import cors from "cors";
 import { contatosRouter } from "./routes/contatos.js";
 import { conversasRouter } from "./routes/conversas.js";
 import { filasRouter } from "./routes/filas.js";
+import { webhookMetaRouter } from "./routes/webhookMeta.js";
 
 const app = express();
 app.use(cors());
@@ -14,6 +15,7 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/api/contatos", contatosRouter);
 app.use("/api/conversas", conversasRouter);
 app.use("/api/filas", filasRouter);
+app.use("/webhook", webhookMetaRouter);
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(port, () => {
