@@ -5,6 +5,9 @@ import { contatosRouter } from "./routes/contatos.js";
 import { conversasRouter } from "./routes/conversas.js";
 import { filasRouter } from "./routes/filas.js";
 import { webhookMetaRouter } from "./routes/webhookMeta.js";
+import { mensagensRouter } from "./routes/mensagens.js";
+import { trafegoRouter } from "./routes/trafego.js";
+import { dashboardRouter } from "./routes/dashboard.js";
 
 const app = express();
 app.use(cors());
@@ -16,6 +19,9 @@ app.use("/api/contatos", contatosRouter);
 app.use("/api/conversas", conversasRouter);
 app.use("/api/filas", filasRouter);
 app.use("/webhook", webhookMetaRouter);
+app.use("/api/mensagens", mensagensRouter);
+app.use("/api/trafego", trafegoRouter);
+app.use("/api/dashboard", dashboardRouter);
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(port, () => {
