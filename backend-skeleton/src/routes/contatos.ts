@@ -37,3 +37,35 @@ contatosRouter.post("/opt-out", async (req, res) => {
 
   return res.json({ ok: true });
 });
+
+// POST /api/contatos/atualizar
+// Chamado pela Ficha do Cliente quando o atendente edita tags ou observações.
+contatosRouter.post("/atualizar", async (req, res) => {
+  const { contato_id, tags, observacoes } = req.body;
+
+  if (!contato_id) {
+    return res.status(400).json({ error: "contato_id é obrigatório" });
+  }
+
+  const updatePayload: Record<string, unknown> = {};
+  if (tags !== undefined) {
+    if (!Array.isArray(tags)) return res.status(400).json({ error: "tags precisa ser um array de strings" });
+    updatePayload.tags = tags;
+  }
+  if (observacoes !== undefined) updatePayload.observacoes = observacoes;
+
+  if (Object.keys(updatePayload).length === 0) {
+    return res.status(400).json({ error: "envie ao menos tags ou observacoes pra atualizar" });
+  }
+
+  const { data, error } = await supabase
+    .from("contatos")
+    .update(updatePayload)
+    .eq("id", contato_id)
+    .select()
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.json({ contato: data });
+});
