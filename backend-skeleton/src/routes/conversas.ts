@@ -109,3 +109,56 @@ conversasRouter.post("/verificar-timeout", async (req, res) => {
 
   return res.json({ ok: true, conversas_revertidas: data?.length || 0 });
 });
+
+// POST /api/conversas/atualizar-funil
+// Chamado pela Ficha do Cliente na Caixa de Entrada quando o atendente
+// muda a etapa do funil comercial (Novo lead -> Contato iniciado -> ... -> Cliente/Perdido).
+// Grava histórico da mudança em `funil_historico`.
+const ETAPAS_FUNIL = [
+  "novo_lead",
+  "contato_iniciado",
+  "qualificado",
+  "demonstracao",
+  "proposta_enviada",
+  "negociacao",
+  "cliente",
+  "perdido",
+];
+
+conversasRouter.post("/atualizar-funil", async (req, res) => {
+  const { conversation_id, etapa_funil, mudado_por } = req.body;
+
+  if (!conversation_id || !etapa_funil) {
+    return res.status(400).json({ error: "conversation_id e etapa_funil são obrigatórios" });
+  }
+
+  if (!ETAPAS_FUNIL.includes(etapa_funil)) {
+    return res.status(400).json({ error: `etapa_funil inválida, use uma de: ${ETAPAS_FUNIL.join(", ")}` });
+  }
+
+  const { data: conversaAtual, error: buscaError } = await supabase
+    .from("conversas")
+    .select("etapa_funil")
+    .eq("id", conversation_id)
+    .single();
+
+  if (buscaError) return res.status(500).json({ error: buscaError.message });
+
+  const { data: conversaAtualizada, error: updateError } = await supabase
+    .from("conversas")
+    .update({ etapa_funil })
+    .eq("id", conversation_id)
+    .select()
+    .single();
+
+  if (updateError) return res.status(500).json({ error: updateError.message });
+
+  await supabase.from("funil_historico").insert({
+    conversa_id: conversation_id,
+    etapa_anterior: conversaAtual?.etapa_funil || null,
+    etapa_nova: etapa_funil,
+    mudado_por: mudado_por || null,
+  });
+
+  return res.json({ conversa: conversaAtualizada });
+});
